@@ -2,6 +2,7 @@
 
 (add-to-list 'auto-mode-alist '("\\.emacs-project\\'" . emacs-lisp-mode))
 (add-to-list 'auto-mode-alist '("archive-contents\\'" . emacs-lisp-mode))
+(add-to-list 'auto-mode-alist '("\\.emacs\\.bmk\\'" . emacs-lisp-mode))
 
 ;; @see http://blog.urth.org/2011/06/02/flymake-versus-the-catalyst-restarter/
 (defun flymake-create-temp-intemp (file-name prefix)
@@ -78,9 +79,8 @@
     (enable-paredit-mode)
     (rainbow-delimiters-mode t)
     (set-up-hippie-expand-for-elisp)
-    (flymake-mode)
-    (checkdoc-minor-mode)))
-
+    (flymake-mode 1)
+    (checkdoc-minor-mode 1)))
 (add-hook 'emacs-lisp-mode-hook 'elisp-mode-hook-setup)
 
 (provide 'init-elisp)

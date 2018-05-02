@@ -1,15 +1,20 @@
 (defun show-scratch-buffer-message ()
-  (if (executable-find "fortune")
+  (let* ((fortune-prog (or (executable-find "fortune-zh")
+                           (executable-find "fortune"))))
+    (cond
+     (fortune-prog
       (format
        ";; %s\n\n"
        (replace-regexp-in-string
         "\n" "\n;; " ; comment each line
         (replace-regexp-in-string
          "\\(\n$\\|\\|\\[m *\\|\\[[0-9][0-9]m *\\)" ""    ; remove trailing linebreak
-         (shell-command-to-string "fortune"))))
-    (concat ";; Happy hacking "
-            (or user-login-name "")
-            " - Emacs loves you!\n\n")))
+         (shell-command-to-string fortune-prog)))))
+     (t
+      (concat ";; Happy hacking "
+              (or user-login-name "")
+              " - Emacs loves you!\n\n")))))
+
 (setq-default initial-scratch-message (show-scratch-buffer-message))
 
 ;; racket
@@ -46,6 +51,21 @@
      (when turn-on
        (remove-hook 'pre-command-hook #'hl-sexp-unhighlight))))
 
+(defun my-swap-sexps (&optional num)
+  "Swap two lisp sexps."
+  (interactive "P")
+  (let* ((c (following-char)))
+    (cond
+     (num
+      (unless (eq c 40)
+        (goto-char (line-beginning-position))))
+     (t
+      (unless (eq c 40)
+        (goto-char (line-end-position))
+        (goto-char (+ (point) 1)))))
+    (transpose-sexps 1)
+    (backward-sexp)))
+
 ;; ----------------------------------------------------------------------------
 ;; Enable desired features for all lisp modes
 ;; ----------------------------------------------------------------------------
@@ -55,10 +75,10 @@
   (rainbow-delimiters-mode t)
   (turn-on-eldoc-mode))
 
-(let* ((lispy-hooks '(lisp-mode-hook
-                      inferior-lisp-mode-hook
-                      lisp-interaction-mode-hook)))
-  (dolist (hook lispy-hooks)
+(let* ((hooks '(lisp-mode-hook
+                inferior-lisp-mode-hook
+                lisp-interaction-mode-hook)))
+  (dolist (hook hooks)
     (add-hook hook 'sanityinc/lisp-setup)))
 
 (provide 'init-lisp)

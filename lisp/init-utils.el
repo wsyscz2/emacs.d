@@ -31,6 +31,16 @@
     (add-to-list 'auto-mode-alist (cons pattern mode))))
 
 
+(defun font-belongs-to (pos fonts)
+  "Current font at POS belongs to FONTS."
+  (let* ((fontfaces (get-text-property pos 'face)))
+    (when (not (listp fontfaces))
+      (setf fontfaces (list fontfaces)))
+    (delq nil
+          (mapcar (lambda (f)
+                    (member f fonts))
+                  fontfaces))))
+
 ;;----------------------------------------------------------------------------
 ;; String utilities missing from core emacs
 ;;----------------------------------------------------------------------------
@@ -52,6 +62,37 @@
 (defun directory-of-library (library-name)
   "Return the directory in which the `LIBRARY-NAME' load file is found."
   (file-name-as-directory (file-name-directory (find-library-name library-name))))
+
+(defmacro my-select-from-kill-ring (fn &optional n)
+  "Use `browse-kill-ring' if it exists and N is 1.
+If N > 1, assume just yank the Nth item in `kill-ring'.
+If N is nil, use `ivy-mode' to browse the `kill-ring'."
+  (interactive "P")
+  `(cond
+    ((or (not ,n) (and (= ,n 1) (not (fboundp 'browse-kill-ring))))
+     ;; remove duplicates in `kill-ring'
+     (let* ((candidates (cl-remove-if
+                         (lambda (s)
+                           (or (< (length s) 5)
+                               (string-match "\\`[\n[:blank:]]+\\'" s)))
+                         (delete-dups kill-ring))))
+       (let* ((ivy-height (/ (frame-height) 2)))
+         (ivy-read "Browse `kill-ring':"
+                   (mapcar
+                    (lambda (s)
+                      (let* ((w (frame-width))
+                             ;; display kill ring item in one line
+                             (key (replace-regexp-in-string "[ \t]*[\n\r]+[ \t]*" "\\\\n" s)))
+                        ;; strip the whitespace
+                        (setq key (replace-regexp-in-string "^[ \t]+" "" key))
+                        ;; fit to the minibuffer width
+                        (if (> (length key) w)
+                            (setq key (concat (substring key 0 (- w 4)) "...")))
+                        (cons key s)))
+                    candidates)
+                   :action #',fn))))
+    ((= ,n 1)
+     (browse-kill-ring))))
 
 (defun my-insert-str (str)
   ;; ivy8 or ivy9
@@ -140,6 +181,10 @@
   (or (> (buffer-size) (* 5000 64))
       (> (line-number-at-pos (point-max)) 5000)))
 
+(defun file-too-big-p (file)
+  (> (nth 7 (file-attributes file))
+     (* 5000 64)))
+
 (defun is-buffer-file-temp ()
   (interactive)
   "If (buffer-file-name) is nil or a temp file or HTML file converted from org file"
@@ -165,11 +210,16 @@
       (setq rlt nil)))
     rlt))
 
+(defvar my-mplayer-extra-opts ""
+  "Extra options for mplayer (ao or vo setup).  For example,
+you can '(setq my-mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
+
 (defun my-guess-mplayer-path ()
   (let* ((rlt "mplayer"))
     (cond
      (*is-a-mac* (setq rlt "mplayer -quiet"))
-     (*linux* (setq rlt "mplayer -quiet -stop-xscreensaver"))
+     (*linux*
+      (setq rlt (format "mplayer -quiet -stop-xscreensaver %s" my-mplayer-extra-opts)))
      (*cygwin*
       (if (file-executable-p "/cygdrive/c/mplayer/mplayer.exe")
           (setq rlt "/cygdrive/c/mplayer/mplayer.exe -quiet")
@@ -197,12 +247,30 @@
 
 ;; {{ simpleclip has problem on Emacs 25.1
 (defun test-simpleclip ()
-  (simpleclip-set-contents "testsimpleclip!")
-  (string= "testsimpleclip!" (simpleclip-get-contents)))
+  (unwind-protect
+      (let (retval)
+        (condition-case ex
+            (progn
+              (simpleclip-set-contents "testsimpleclip!")
+              (setq retval
+                    (string= "testsimpleclip!"
+                             (simpleclip-get-contents))))
+          ('error
+           (message (format "Please install %s to support clipboard from terminal."
+                            (cond
+                             (*unix*
+                              "xsel or xclip")
+                             ((or *cygwin* *win64*)
+                              "cygutils-extra from Cygwin")
+                             (t
+                              "CLI clipboard tools"))))
+           (setq retval nil)))
+        retval)))
 
 (setq simpleclip-works (test-simpleclip))
 
 (defun my-gclip ()
+  (unless (featurep 'simpleclip) (require 'simpleclip))
   (if simpleclip-works (simpleclip-get-contents)
     (cond
      ((eq system-type 'darwin)
@@ -252,9 +320,10 @@
       (set-buffer rlt-buf)
       (erase-buffer)
       (insert ,content)
-      (diff-mode)
+      ;; `ffip-diff-mode' is more powerful than `diff-mode'
+      (ffip-diff-mode)
       (goto-char (point-min))
-      ;; evil keybinding
+      ;; Evil keybinding
       (if (fboundp 'evil-local-set-key)
           (evil-local-set-key 'normal "q"
                               (lambda ()

@@ -1,4 +1,4 @@
-(require 'keyfreq)
+(local-require 'keyfreq)
 
 (defun turnon-keyfreq-mode ()
   (interactive)
@@ -142,6 +142,8 @@
         ivy-backward-delete-char
         ivy-done
         ivy-next-line
+        ivy-occur-next-line
+        ivy-occur-previous-line
         ivy-previous-line
         js-mode
         js2-line-break
@@ -172,6 +174,7 @@
         org-return
         org-self-insert-command
         org-todo
+        orgtbl-self-insert-command
         package-menu-execute
         paredit-backward-delete
         paredit-backward-kill-word

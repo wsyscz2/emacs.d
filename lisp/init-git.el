@@ -29,7 +29,7 @@
 ;; (add-hook 'c-mode-hook 'my-setup-develop-environment)
 
 ;; {{ git-gutter
-(require 'git-gutter)
+(local-require 'git-gutter)
 
 (defun git-gutter-reset-to-head-parent()
   (interactive)
@@ -195,21 +195,6 @@
     (message "NO git-gutters!")))
 
 ;; }}
-
-;; {{ git-messenger
-;; show details to play `git blame' game
-(setq git-messenger:show-detail t)
-(add-hook 'git-messenger:after-popup-hook
-          (lambda (msg)
-            ;; extract commit id and put into the kill ring
-            (when (string-match "\\(commit *: *\\)\\([0-9a-z]+\\)" msg)
-              ;; get the first 7 characters as hash because that's `git log' use
-              (let ((hash (substring-no-properties (match-string 2 msg) 0 7)))
-                (copy-yank-str hash)
-                (message "commit hash %s => clipboard & kill-ring" hash)))))
-(global-set-key (kbd "C-x v p") 'git-messenger:popup-message)
-;; }}
-
 
 (provide 'init-git)
 
