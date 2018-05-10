@@ -328,5 +328,16 @@ _q_ cancel
 ;; (global-set-key (kbd "C-c ; b") 'sdcv-search-pointer)
 ;; (global-set-key (kbd "C-c ; t") 'sdcv-search-input+)
 
+(defhydra hydra-find (:color pink)
+  "Find"
+  ("f" counsel-gtags-find-file "find file")
+  ("g" counsel-etags-grep-symbol-at-point "grep symbol")
+  ("." counsel-gtags-dwim "gtags dwim")
+  ("d" counsel-gtags-find-definition "gtags definition")
+  ("r" counsel-gtags-find-reference "gtags reference")
+  ("s" counsel-gtags-find-symbol "gtags symbol")
+  ("q" nil "cancel"))
+(global-set-key (kbd "C-c C-f") 'hydra-find/body)
+
 (provide 'init-hydra)
 ;;; init-hydra.el ends here
