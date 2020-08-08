@@ -59,7 +59,7 @@
     ;; Make sure your project use cmake!
     ;; Or else, you need comment out below code:
     ;; {{
-    (flymake-mode 1)
+    ;; (flymake-mode 1)
     (if (executable-find "cmake")
         (if (not (or (string-match "^/usr/local/include/.*" buffer-file-name)
                      (string-match "^/usr/src/linux/include/.*" buffer-file-name)))
